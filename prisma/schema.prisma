@@ -1,0 +1,163 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User Model - Supports Teachers, Students, and Government Officials
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  password       String
+  name           String?
+  phone          String?
+  role           String    // 'teacher' | 'student' | 'government'
+  schoolName     String?
+  class          Int?      // 10, 11, or 12 for students
+  stream         String?   // 'CSC Maths' | 'Bio Maths' | 'Accounts/Commerce'
+  isApproved     Boolean   @default(false) // Students need teacher approval
+  teacherId      String?   // For students, links to their teacher
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  createdClassrooms Classroom[]
+  studentStudents  Student[] @relation("StudentUser")
+  teacherStudents  Student[] @relation("TeacherStudent")
+  loginLogs        LoginLog[]
+  testAttempts     TestAttempt[]
+}
+
+// Classroom Model
+model Classroom {
+  id          String   @id @default(cuid())
+  name        String   // e.g., "Class 10 - Section A"
+  schoolName  String
+  class       Int      // 10, 11, or 12
+  stream      String   // 'CSC Maths' | 'Bio Maths' | 'Accounts/Commerce'
+  teacherId   String
+  studentCount Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  teacher  User        @relation(fields: [teacherId], references: [id])
+  students Student[]
+  videos   Video[]
+  tests    Test[]
+}
+
+// Student Model - Additional student-specific data
+model Student {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  email       String   @unique
+  name        String
+  parentEmail String
+  classroomId  String?
+  stream      String   // 'CSC Maths' | 'Bio Maths' | 'Accounts/Commerce'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user      User          @relation("StudentUser", fields: [userId], references: [id])
+  classroom Classroom?     @relation(fields: [classroomId], references: [id])
+  teacherId String?
+  teacher   User?         @relation("TeacherStudent", fields: [teacherId], references: [id])
+}
+
+// Video Model - YouTube videos
+model Video {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  youtubeId   String   // YouTube video ID
+  thumbnailUrl String?
+  class       Int      // 10, 11, or 12
+  subject     String   // e.g., "Physics", "Chemistry"
+  stream      String   // 'CSC Maths' | 'Bio Maths' | 'Accounts/Commerce'
+  unit        String?  // e.g., "Unit 1", "Unit 2"
+  classroomId  String?
+  duration    Int?     // Duration in seconds
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  classroom Classroom? @relation(fields: [classroomId], references: [id])
+}
+
+// MCQ Question Model
+model Question {
+  id          String   @id @default(cuid())
+  question    String
+  optionA     String
+  optionB     String
+  optionC     String
+  optionD     String
+  correctOption Int    // 1, 2, 3, or 4
+  class       Int      // 10, 11, or 12
+  subject     String
+  stream      String
+  classroomId  String?
+  videoId     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Test Model - MCQ Tests
+model Test {
+  id          String   @id @default(cuid())
+  title       String
+  class       Int      // 10, 11, or 12
+  subject     String
+  stream      String
+  classroomId String?
+  videoId     String?
+  questionCount Int    @default(20)
+  totalMarks  Int      @default(20)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  classroom Classroom? @relation(fields: [classroomId], references: [id])
+  attempts  TestAttempt[]
+}
+
+// Test Attempt Model - Records student test attempts
+model TestAttempt {
+  id          String   @id @default(cuid())
+  testId      String
+  studentId   String
+  score       Int
+  totalMarks  Int
+  percentage  Float
+  answers     String   // JSON string of answers
+  completedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  // Relations
+  test    Test @relation(fields: [testId], references: [id])
+  student User @relation(fields: [studentId], references: [id])
+}
+
+// Login/Logout Log Model
+model LoginLog {
+  id        String   @id @default(cuid())
+  userId    String
+  email     String
+  role      String
+  loginTime DateTime @default(now())
+  logoutTime DateTime?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+}

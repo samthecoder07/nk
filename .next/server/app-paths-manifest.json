@@ -1,0 +1,7 @@
+{
+  "/api/mcqs/route": "app/api/mcqs/route.js",
+  "/api/auth/logout/route": "app/api/auth/logout/route.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/classrooms/route": "app/api/classrooms/route.js",
+  "/page": "app/page.js"
+}
